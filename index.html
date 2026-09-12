@@ -1,1 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<title>Genie Rage</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        background: #080b14;
+        color: white;
+        font-family: Arial, Helvetica, sans-serif;
+        overflow: hidden;
+    }
+
+    #game {
+        width: 100vw;
+        height: 100vh;
+        position: relative;
+        overflow: hidden;
+        background:
+            radial-gradient(circle at 50% 30%, #252d4d 0%, #101426 45%, #05060b 100%);
+    }
+
+    /* =========================================================
+       SPRITE PLACEMENT
+       =========================================================
+
+       Change the background-image below to your own sprite.
+
+       HERO:
+       #heroSprite
+
+       GENIE:
+       #genieSprite
+
+       You can also replace the emoji/text with:
+       <img src="hero.png">
+       <img src="genie.png">
+
+       ========================================================= */
+
+    .sprite {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+        pointer-events: none;
+    }
+
+    #heroSprite {
+        left: 8%;
+        bottom: 7%;
+        width: 180px;
+        height: 220px;
+
+        /* Replace this with:
+           background-image: url("hero.png");
+           background-size: contain;
+           background-repeat: no-repeat;
+           background-position: center;
+        */
+
+        font-size: 100px;
+    }
+
+    #genieSprite {
+        right: 7%;
+        top: 7%;
+        width: 190px;
+        height: 220px;
+
+        /* Replace this with:
+           background-image: url("genie.png");
+           background-size: contain;
+           background-repeat: no-repeat;
+           background-position: center;
+        */
+
+        font-size: 100px;
+    }
+
+    /* ========================================================= */
+
+    #hud {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+
+        padding: 18px 25px;
+
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        background: rgba(0,0,0,0.45);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+
+        z-index: 20;
+    }
+
+    #title {
+        font-size: 22px;
+        font-weight: bold;
+    }
+
+    #levelText {
+        font-size: 18px;
+    }
+
+    #genieMood {
+        font-size: 16px;
+    }
+
+    #gameArea {
+        position: absolute;
+        left: 50%;
+        top: 52%;
+
+        transform: translate(-50%, -50%);
+
+        width: min(850px, 70vw);
+        min-height: 450px;
+
+        padding: 35px;
+
+        background: rgba(13, 17, 32, 0.93);
+
+        border: 2px solid #505a8c;
+        border-radius: 20px;
+
+        box-shadow:
+            0 0 40px rgba(0,0,0,0.5),
+            inset 0 0 40px rgba(100,120,255,0.05);
+
+        z-index: 10;
+    }
+
+    #levelTitle {
+        margin-top: 0;
+        text-align: center;
+        font-size: 32px;
+    }
+
+    #riddle {
+        font-size: 21px;
+        line-height: 1.6;
+        text-align: center;
+
+        margin: 25px auto;
+
+        max-width: 720px;
+    }
+
+    #inputArea {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 25px;
+    }
+
+    input {
+        width: 280px;
+        padding: 14px;
+
+        border-radius: 10px;
+        border: 2px solid #59658e;
+
+        background: #080b14;
+        color: white;
+
+        font-size: 17px;
+        outline: none;
+    }
+
+    button {
+        padding: 14px 22px;
+
+        border: none;
+        border-radius: 10px;
+
+        background: #6978d8;
+        color: white;
+
+        font-size: 16px;
+        font-weight: bold;
+
+        cursor: pointer;
+
+        transition: transform 0.15s, filter 0.15s;
+    }
+
+    button:hover {
+        transform: scale(1.04);
+        filter: brightness(1.2);
+    }
+
+    button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    #feedback {
+        min-height: 35px;
+
+        margin-top: 25px;
+
+        text-align: center;
+
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    #controls {
+        margin-top: 25px;
+
+        text-align: center;
+
+        color: #aeb7d9;
+    }
+
+    #keyDisplay {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 5px;
+
+        max-width: 650px;
+
+        margin: 15px auto;
+    }
+
+    .key {
+        width: 35px;
+        height: 35px;
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        border: 1px solid #566086;
+        border-radius: 5px;
+
+        background: #171c32;
+
+        font-size: 13px;
+    }
+
+    #mousePuzzle {
+        display: none;
+
+        position: relative;
+
+        width: 100%;
+        height: 230px;
+
+        margin-top: 20px;
+
+        border: 2px dashed #59658e;
+        border-radius: 15px;
+
+        overflow: hidden;
+    }
+
+    #target {
+        position: absolute;
+
+        width: 55px;
+        height: 55px;
+
+        border-radius: 50%;
+
+        background: #d9dfff;
+
+        box-shadow: 0 0 25px rgba(255,255,255,0.8);
+
+        cursor: pointer;
+    }
+
+    #visibilityOverlay {
+        display: none;
+
+        position: absolute;
+
+        inset: 0;
+
+        background: rgba(0,0,0,0.75);
+
+        z-index: 50;
+
+        pointer-events: none;
+    }
+
+    #rageMeter {
+        position: absolute;
+
+        bottom: 20px;
+        right: 25px;
+
+        width: 220px;
+        height: 18px;
+
+        border: 1px solid #72799b;
+
+        border-radius: 10px;
+
+        overflow: hidden;
+
+        z-index: 30;
+    }
+
+    #rageFill {
+        height: 100%;
+        width: 0%;
+
+        background: #d45c72;
+
+        transition: width 0.4s;
+    }
+
+    #genieSpeech {
+        position: absolute;
+
+        right: 4%;
+        top: 27%;
+
+        width: 240px;
+
+        padding: 15px;
+
+        background: white;
+        color: #111;
+
+        border-radius: 15px;
+
+        font-size: 15px;
+        line-height: 1.4;
+
+        z-index: 15;
+    }
+
+    #crashScreen {
+        display: none;
+
+        position: absolute;
+
+        inset: 0;
+
+        background: #020204;
+
+        z-index: 100;
+
+        padding: 10vw;
+
+        font-family: "Courier New", monospace;
+
+        color: #ddd;
+    }
+
+    #crashScreen h1 {
+        font-size: 55px;
+        margin-bottom: 20px;
+    }
+
+    #crashText {
+        line-height: 1.8;
+        white-space: pre-line;
+    }
+
+    #restart {
+        margin-top: 30px;
+
+        background: #d5d5d5;
+        color: black;
+    }
+
+    .shake {
+        animation: shake 0.18s infinite;
+    }
+
+    @keyframes shake {
+        0%   { transform: translate(-50%, -50%) rotate(0deg); }
+        25%  { transform: translate(-49%, -51%) rotate(-1deg); }
+        50%  { transform: translate(-51%, -49%) rotate(1deg); }
+        75%  { transform: translate(-50%, -51%) rotate(-1deg); }
+        100% { transform: translate(-50%, -50%) rotate(0deg); }
+    }
+
+    .glitch {
+        animation: glitch 0.15s infinite;
+    }
+
+    @keyframes glitch {
+        0% { filter: none; }
+        30% { filter: contrast(2) hue-rotate(30deg); }
+        60% { filter: blur(1px); }
+        100% { filter: none; }
+    }
+
+    @media (max-width: 900px) {
+        #heroSprite,
+        #genieSprite {
+            opacity: 0.35;
+        }
+
+        #gameArea {
+            width: 88vw;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+    <!-- ================= SPRITES ================= -->
+
+    <div id="heroSprite" class="sprite">
+        🧙
+    </div>
+
+    <div id="genieSprite" class="sprite">
+        🧞
+    </div>
+
+    <!-- ================= HUD ================= -->
+
+    <div id="hud">
+
+        <div id="title">
+            THE GENIE'S GAME
+        </div>
+
+        <div id="levelText">
+            Level 1 / 7
+        </div>
+
+        <div id="genieMood">
+            Genie: 😐
+        </div>
+
+    </div>
+
+    <!-- ================= GAME ================= -->
+
+    <div id="gameArea">
+
+        <h1 id="levelTitle">
+            The First Test
+        </h1>
+
+        <div id="riddle">
+            Loading...
+        </div>
+
+        <div id="inputArea">
+            <input
+                id="answerInput"
+                type="text"
+                autocomplete="off"
+                placeholder="Type your answer..."
+            >
+
+            <button id="submitButton">
+                Submit
+            </button>
+        </div>
+
+        <div id="mousePuzzle">
+
+            <div id="target"></div>
+
+        </div>
+
+        <div id="controls">
+            <div id="controlText">
+                Type your answer and press Enter.
+            </div>
+
+            <div id="keyDisplay"></div>
+        </div>
+
+        <div id="feedback"></div>
+
+    </div>
+
+    <!-- ================= GENIE ================= -->
+
+    <div id="genieSpeech">
+        <b>Genie:</b>
+        <span id="speech">
+            Let's see what you've got...
+        </span>
+    </div>
+
+    <!-- ================= RAGE ================= -->
+
+    <div id="rageMeter">
+        <div id="rageFill"></div>
+    </div>
+
+    <!-- ================= VISIBILITY ================= -->
+
+    <div id="visibilityOverlay"></div>
+
+    <!-- ================= SIMULATED CRASH ================= -->
+
+    <div id="crashScreen">
+
+        <h1>GAME CRASHED</h1>
+
+        <div id="crashText">
+GENIE_RUNTIME_ERROR
+
+The Genie has had enough.
+
+Reason:
+PLAYER WAS TOO GOOD
+
+Level: 7
+
+Genie emotional state:
+CRITICAL
+
+Attempting to restore rules...
+
+FAILED.
+
+Keyboard integrity: FAILED
+Mouse integrity: FAILED
+Riddle generator: OVERHEATED
+
+The Genie has ragequit.
+
+Error code: GENIE_0xRAGE
+
+        </div>
+
+        <button id="restart">
+            Restart Game
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* ============================================================
+   GAME DATA
+   ============================================================ */
+
+const levels = [
+
+    {
+        title: "The First Test",
+
+        riddle:
+            "I have keys but no locks. I have space but no room. You can enter, but you cannot go inside. What am I?",
+
+        answers: ["keyboard"],
+
+        type: "riddle",
+
+        speech:
+            "A simple riddle. Surely you won't embarrass me already."
+    },
+
+    {
+        title: "The Second Test",
+
+        riddle:
+            "What has to be broken before you can use it?",
+
+        answers: ["egg"],
+
+        type: "riddle",
+
+        speech:
+            "Still easy. I haven't even started cheating yet."
+    },
+
+    {
+        title: "The Rules Change",
+
+        riddle:
+            "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?",
+
+        answers: ["echo"],
+
+        type: "riddle",
+
+        speech:
+            "Wait... you're actually winning?"
+    },
+
+    {
+        title: "The Inverted World",
+
+        riddle:
+            "The more you take, the more you leave behind. What am I?",
+
+        answers: ["footsteps", "steps"],
+
+        type: "riddle",
+
+        speech:
+            "Fine. Let's see how well you handle THIS."
+
+    },
+
+    {
+        title: "The Alphabet Trap",
+
+        riddle:
+            "I am always in front of you but can never be seen. You can never catch me, no matter how fast you run. What am I?",
+
+        answers: ["future"],
+
+        type: "riddle",
+
+        speech:
+            "Your keyboard isn't quite behaving normally anymore..."
+
+    },
+
+    {
+        title: "The Dark Room",
+
+        riddle:
+            "A man shaves several times a day, yet still has a beard. Who is he?",
+
+        answers: ["barber"],
+
+        type: "riddle",
+
+        speech:
+            "Let's remove a little of your visibility. Surely that's fair."
+
+    },
+
+    {
+        title: "THE FINAL TEST",
+
+        riddle:
+            "A prisoner is told: 'If you tell a lie, you will be hanged. If you tell the truth, you will be shot.' What single statement can the prisoner make to save himself?",
+
+        answers: [
+            "you will hang me",
+            "i will be hanged",
+            "you are going to hang me"
+        ],
+
+        type: "riddle",
+
+        speech:
+            "NO. NO. NO. YOU WERE NOT SUPPOSED TO GET THIS FAR."
+    }
+
+];
+
+
+/* ============================================================
+   GAME STATE
+   ============================================================ */
+
+let currentLevel = 0;
+
+let rage = 0;
+
+let mouseInverted = false;
+
+let alphabeticalKeyboard = false;
+
+let reducedVisibility = false;
+
+let gameFinished = false;
+
+
+/* ============================================================
+   ELEMENTS
+   ============================================================ */
+
+const game = document.getElementById("game");
+
+const gameArea = document.getElementById("gameArea");
+
+const levelTitle = document.getElementById("levelTitle");
+
+const riddle = document.getElementById("riddle");
+
+const answerInput = document.getElementById("answerInput");
+
+const submitButton = document.getElementById("submitButton");
+
+const feedback = document.getElementById("feedback");
+
+const speech = document.getElementById("speech");
+
+const levelText = document.getElementById("levelText");
+
+const genieMood = document.getElementById("genieMood");
+
+const rageFill = document.getElementById("rageFill");
+
+const visibilityOverlay =
+    document.getElementById("visibilityOverlay");
+
+const mousePuzzle =
+    document.getElementById("mousePuzzle");
+
+const target =
+    document.getElementById("target");
+
+const controlText =
+    document.getElementById("controlText");
+
+const keyDisplay =
+    document.getElementById("keyDisplay");
+
+const crashScreen =
+    document.getElementById("crashScreen");
+
+const restart =
+    document.getElementById("restart");
+
+
+/* ============================================================
+   LOAD LEVEL
+   ============================================================ */
+
+function loadLevel() {
+
+    if (currentLevel >= levels.length) {
+
+        simulateCrash();
+
+        return;
+    }
+
+    const level = levels[currentLevel];
+
+    levelTitle.textContent = level.title;
+
+    riddle.textContent = level.riddle;
+
+    levelText.textContent =
+        `Level ${currentLevel + 1} / ${levels.length}`;
+
+    feedback.textContent = "";
+
+    speech.textContent = level.speech;
+
+    answerInput.value = "";
+
+    answerInput.focus();
+
+    updateGenieMood();
+
+    /*
+       Level 3:
+       mouse inversion
+
+       Level 5:
+       alphabetical keyboard
+
+       Level 6:
+       reduced visibility
+
+       Level 7:
+       everything becomes unstable
+    */
+
+    if (currentLevel >= 2) {
+        enableMouseInversion();
+    }
+
+    if (currentLevel >= 4) {
+        enableAlphabeticalKeyboard();
+    }
+
+    if (currentLevel >= 5) {
+        enableReducedVisibility();
+    }
+
+    if (currentLevel === 6) {
+        activateFinalChaos();
+    }
+
+    updateControls();
+}
+
+
+/* ============================================================
+   ANSWER CHECKING
+   ============================================================ */
+
+function checkAnswer() {
+
+    if (gameFinished) {
+        return;
+    }
+
+    const level = levels[currentLevel];
+
+    let answer =
+        answerInput.value
+        .trim()
+        .toLowerCase();
+
+    /*
+       Remove punctuation so that answers like
+       "It's a keyboard!" work more naturally.
+    */
+
+    answer = answer.replace(/[.,!?'"-]/g, "");
+
+    const correct =
+        level.answers.some(
+            accepted =>
+                answer === accepted.toLowerCase()
+        );
+
+    if (correct) {
+
+        feedback.textContent =
+            "Correct!";
+
+        feedback.style.color = "#a8ffb0";
+
+        increaseRage();
+
+        setTimeout(() => {
+
+            currentLevel++;
+
+            if (currentLevel >= levels.length) {
+
+                simulateCrash();
+
+            } else {
+
+                loadLevel();
+
+            }
+
+        }, 1000);
+
+    } else {
+
+        feedback.textContent =
+            "Wrong. Try again.";
+
+        feedback.style.color = "#ff8b9b";
+
+        rage += 5;
+
+        if (rage > 100) {
+            rage = 100;
+        }
+
+        updateRage();
+    }
+}
+
+
+/* ============================================================
+   GENIE RAGE
+   ============================================================ */
+
+function increaseRage() {
+
+    /*
+       The Genie becomes increasingly angry.
+    */
+
+    if (currentLevel < 2) {
+
+        rage += 8;
+
+    } else {
+
+        rage += 17;
+
+    }
+
+    if (rage > 100) {
+        rage = 100;
+    }
+
+    updateRage();
+}
+
+
+function updateRage() {
+
+    rageFill.style.width = rage + "%";
+
+    updateGenieMood();
+}
+
+
+function updateGenieMood() {
+
+    if (rage < 20) {
+
+        genieMood.textContent =
+            "Genie: 😐";
+
+    } else if (rage < 40) {
+
+        genieMood.textContent =
+            "Genie: 🙄";
+
+    } else if (rage < 60) {
+
+        genieMood.textContent =
+            "Genie: 😒";
+
+    } else if (rage < 80) {
+
+        genieMood.textContent =
+            "Genie: 😡";
+
+    } else {
+
+        genieMood.textContent =
+            "Genie: 🤬";
+    }
+}
+
+
+/* ============================================================
+   MOUSE INVERSION
+   ============================================================ */
+
+function enableMouseInversion() {
+
+    mouseInverted = true;
+
+    controlText.textContent =
+        "WARNING: Mouse movement has been inverted.";
+
+}
+
+
+function disableMouseInversion() {
+
+    mouseInverted = false;
+
+}
+
+
+/*
+   This is a demonstration of inverted mouse behaviour.
+
+   It does not alter the operating system's actual mouse.
+   It only reverses mouse interactions inside the game.
+*/
+
+game.addEventListener("mousemove", event => {
+
+    if (!mouseInverted) {
+        return;
+    }
+
+    /*
+       Visual feedback for the inverted mouse mode.
+    */
+
+    const x =
+        window.innerWidth - event.clientX;
+
+    const y =
+        window.innerHeight - event.clientY;
+
+    game.style.setProperty(
+        "--mouse-x",
+        x + "px"
+    );
+
+    game.style.setProperty(
+        "--mouse-y",
+        y + "px"
+    );
+
+});
+
+
+/* ============================================================
+   MOUSE PUZZLE
+   ============================================================ */
+
+function showMousePuzzle() {
+
+    mousePuzzle.style.display = "block";
+
+    positionTarget();
+
+}
+
+
+function positionTarget() {
+
+    const area =
+        mousePuzzle.getBoundingClientRect();
+
+    const maxX =
+        area.width - target.offsetWidth;
+
+    const maxY =
+        area.height - target.offsetHeight;
+
+    let x =
+        Math.random() * maxX;
+
+    let y =
+        Math.random() * maxY;
+
+    /*
+       If the mouse is inverted, deliberately make
+       the target movement feel backwards.
+    */
+
+    if (mouseInverted) {
+
+        x = maxX - x;
+        y = maxY - y;
+
+    }
+
+    target.style.left = x + "px";
+
+    target.style.top = y + "px";
+}
+
+
+target.addEventListener("click", () => {
+
+    feedback.textContent =
+        "You caught it!";
+
+    feedback.style.color =
+        "#a8ffb0";
+
+    increaseRage();
+
+    setTimeout(() => {
+
+        mousePuzzle.style.display = "none";
+
+        currentLevel++;
+
+        loadLevel();
+
+    }, 800);
+
+});
+
+
+/* ============================================================
+   ALPHABETICAL KEYBOARD
+   ============================================================ */
+
+function enableAlphabeticalKeyboard() {
+
+    alphabeticalKeyboard = true;
+
+    answerInput.placeholder =
+        "Keyboard scrambled. Type carefully.";
+
+    buildKeyboardDisplay();
+
+    controlText.textContent =
+        "Keyboard layout changed to alphabetical order.";
+
+}
+
+
+function buildKeyboardDisplay() {
+
+    keyDisplay.innerHTML = "";
+
+    const letters =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    for (const letter of letters) {
+
+        const key =
+            document.createElement("div");
+
+        key.className = "key";
+
+        key.textContent = letter;
+
+        keyDisplay.appendChild(key);
+
+    }
+
+}
+
+
+/*
+   Instead of actually changing the operating system keyboard,
+   the game remaps what happens to keyboard presses.
+
+   Example:
+   Q becomes A
+   W becomes B
+   E becomes C
+   etc.
+
+   This keeps the effect contained inside the game.
+*/
+
+const normalKeyboard =
+    "QWERTYUIOPASDFGHJKLZXCVBNM";
+
+const alphabetKeyboard =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+
+document.addEventListener("keydown", event => {
+
+    if (!alphabeticalKeyboard) {
+        return;
+    }
+
+    if (document.activeElement !== answerInput) {
+        return;
+    }
+
+    const key =
+        event.key.toUpperCase();
+
+    const index =
+        normalKeyboard.indexOf(key);
+
+    if (index !== -1) {
+
+        event.preventDefault();
+
+        const translated =
+            alphabetKeyboard[index];
+
+        answerInput.value +=
+            translated.toLowerCase();
+
+    }
+
+});
+
+
+/* ============================================================
+   REDUCED VISIBILITY
+   ============================================================ */
+
+function enableReducedVisibility() {
+
+    reducedVisibility = true;
+
+    visibilityOverlay.style.display =
+        "block";
+
+    speech.textContent =
+        "Heh. Let's make things a little harder to see.";
+
+}
+
+
+function disableReducedVisibility() {
+
+    reducedVisibility = false;
+
+    visibilityOverlay.style.display =
+        "none";
+
+}
+
+
+/* ============================================================
+   FINAL CHAOS
+   ============================================================ */
+
+function activateFinalChaos() {
+
+    gameArea.classList.add("shake");
+
+    document.getElementById("genieSprite")
+        .classList.add("glitch");
+
+    speech.textContent =
+        "STOP WINNING!!!";
+
+    /*
+       Randomly move the game area slightly.
+    */
+
+    setInterval(() => {
+
+        if (!gameFinished) {
+
+            const x =
+                (Math.random() - 0.5) * 20;
+
+            const y =
+                (Math.random() - 0.5) * 20;
+
+            gameArea.style.marginLeft =
+                x + "px";
+
+            gameArea.style.marginTop =
+                y + "px";
+        }
+
+    }, 300);
+
+}
+
+
+/* ============================================================
+   SIMULATED CRASH
+   ============================================================ */
+
+function simulateCrash() {
+
+    gameFinished = true;
+
+    gameArea.style.display =
+        "none";
+
+    document.getElementById("hud")
+        .style.display = "none";
+
+    document.getElementById("genieSpeech")
+        .style.display = "none";
+
+    document.getElementById("rageMeter")
+        .style.display = "none";
+
+    document.getElementById("heroSprite")
+        .style.display = "none";
+
+    document.getElementById("genieSprite")
+        .style.display = "none";
+
+    visibilityOverlay.style.display =
+        "none";
+
+    crashScreen.style.display =
+        "block";
+
+    /*
+       A game should not actually crash the browser or computer.
+       This gives the player the intended "ragequit/crash"
+       experience without harming anything.
+    */
+
+}
+
+
+/* ============================================================
+   RESTART
+   ============================================================ */
+
+restart.addEventListener("click", () => {
+
+    location.reload();
+
+});
+
+
+/* ============================================================
+   SUBMIT
+   ============================================================ */
+
+submitButton.addEventListener("click", checkAnswer);
+
+
+answerInput.addEventListener("keydown", event => {
+
+    if (event.key === "Enter") {
+
+        checkAnswer();
+
+    }
+
+});
+
+
+/* ============================================================
+   KEYBOARD DISPLAY
+   ============================================================ */
+
+function updateControls() {
+
+    if (currentLevel >= 4) {
+
+        keyDisplay.style.display =
+            "flex";
+
+    } else {
+
+        keyDisplay.style.display =
+            "none";
+
+    }
+
+}
+
+
+/* ============================================================
+   START GAME
+   ============================================================ */
+
+loadLevel();
+
+</script>
+
+</body>
+</html>
