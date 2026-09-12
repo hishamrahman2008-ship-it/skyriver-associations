@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Genie's Riddle Game</title>
+
+<style>
+/* =========================================================
+   EASY SPRITE PLACEMENT
+   Change ONLY these variables to reposition the characters.
+   ========================================================= */
+:root {
+    --hero-x: 7%;
+    --hero-y: 73%;
+    --hero-scale: 2.7;
+
+    --genie-x: 78%;
+    --genie-y: 6%;
+    --genie-scale: 2.0;
+
+    --panel-width: min(780px, 76vw);
+}
+
+/* =========================================================
+   THEME
+   Arabian-Nights / magical-desert inspired, with deep blue,
+   gold, turquoise and parchment styling.
+   ========================================================= */
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    font-family: Georgia, "Times New Roman", serif;
+    color: #fff5cf;
+    background: #080b20;
+}
+
+#game {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 50% 20%, rgba(66, 82, 160, .65), transparent 34%),
+        radial-gradient(circle at 20% 85%, rgba(0, 155, 174, .24), transparent 28%),
+        linear-gradient(180deg, #080c2c 0%, #101653 48%, #08091c 100%);
+}
+
+/* Stars / magical atmosphere */
+#game::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: .75;
+    background-image:
+        radial-gradient(circle, #fff3a1 1px, transparent 1.5px),
+        radial-gradient(circle, #fff 1px, transparent 1.5px),
+        radial-gradient(circle, #8fefff 1px, transparent 1.5px);
+    background-size: 83px 71px, 127px 103px, 181px 149px;
+    background-position: 12px 10px, 40px 37px, 90px 20px;
+    pointer-events: none;
+}
+
+/* Crescent moon */
+#moon {
+    position: absolute;
+    top: 9%;
+    left: 10%;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    background: #ffe99a;
+    box-shadow: 0 0 45px rgba(255,233,154,.45);
+}
+#moon::after {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: 30px;
+    width: 105px;
+    height: 105px;
+    border-radius: 50%;
+    background: #0a0e32;
+}
+
+/* Decorative palace arches */
+#palace {
+    position: absolute;
+    left: 50%;
+    bottom: -4%;
+    transform: translateX(-50%);
+    width: 120%;
+    height: 26%;
+    opacity: .35;
+    background:
+        radial-gradient(ellipse at 20% 100%, transparent 0 80px, #050614 81px 88px, transparent 89px),
+        radial-gradient(ellipse at 50% 100%, transparent 0 110px, #050614 111px 119px, transparent 120px),
+        radial-gradient(ellipse at 80% 100%, transparent 0 80px, #050614 81px 88px, transparent 89px);
+    border-top: 3px solid rgba(255,214,103,.35);
+}
+
+/* =========================================================
+   SPRITES
+   ========================================================= */
+.sprite {
+    position: absolute;
+    z-index: 12;
+    pointer-events: none;
+    user-select: none;
+    transform-origin: center bottom;
+}
+
+.sprite img {
+    display: block;
+    width: auto;
+    height: 170px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 12px 12px rgba(0,0,0,.55));
+}
+
+#heroSprite {
+    left: var(--hero-x);
+    bottom: calc(100% - var(--hero-y));
+    transform: scale(var(--hero-scale));
+}
+
+#genieSprite {
+    left: var(--genie-x);
+    top: var(--genie-y);
+    transform: scale(var(--genie-scale));
+    transform-origin: center top;
+}
+
+/* =========================================================
+   TOP BAR
+   ========================================================= */
+#hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 20px;
+    padding: 13px 24px;
+    background: linear-gradient(180deg, rgba(4,7,27,.96), rgba(8,11,32,.72));
+    border-bottom: 1px solid rgba(255,211,93,.45);
+    box-shadow: 0 5px 25px rgba(0,0,0,.3);
+}
+
+.brand {
+    color: #ffd76b;
+    font-size: 23px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 10px rgba(255,196,54,.4);
+}
+
+#levelText {
+    color: #fff4c4;
+    font-weight: bold;
+}
+
+#genieMood {
+    justify-self: end;
+    color: #9beef0;
+}
+
+/* =========================================================
+   MAIN PANEL
+   ========================================================= */
+#gameArea {
+    position: absolute;
+    left: 50%;
+    top: 54%;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+
+    width: var(--panel-width);
+    min-height: 465px;
+    padding: 34px 42px;
+
+    background:
+        linear-gradient(135deg, rgba(255,248,211,.97), rgba(232,216,165,.96));
+    color: #211a25;
+
+    border: 7px solid #d7a93b;
+    border-radius: 24px;
+
+    box-shadow:
+        0 0 0 3px #533a17,
+        0 20px 70px rgba(0,0,0,.6),
+        inset 0 0 45px rgba(105,73,25,.18);
+
+    overflow: hidden;
+}
+
+#gameArea::before,
+#gameArea::after {
+    content: "✦";
+    position: absolute;
+    color: #b27a1d;
+    font-size: 35px;
+    opacity: .7;
+}
+#gameArea::before { left: 16px; top: 12px; }
+#gameArea::after { right: 16px; bottom: 12px; }
+
+#levelTitle {
+    margin: 0 0 12px;
+    text-align: center;
+    color: #4b237b;
+    font-size: 34px;
+    text-shadow: 0 1px 0 #fff;
+}
+
+#levelTitle::after {
+    content: "";
+    display: block;
+    width: 220px;
+    height: 3px;
+    margin: 11px auto 0;
+    background: linear-gradient(90deg, transparent, #c18a28, transparent);
+}
+
+#riddle {
+    max-width: 690px;
+    margin: 24px auto;
+    text-align: center;
+    font-size: 21px;
+    line-height: 1.55;
+}
+
+#inputArea {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+#answerInput {
+    width: min(370px, 70vw);
+    padding: 14px 17px;
+    border: 2px solid #a87a2c;
+    border-radius: 12px;
+    background: #fffdf2;
+    color: #211a25;
+    font: 17px Arial, sans-serif;
+    outline: none;
+}
+
+#answerInput:focus {
+    border-color: #4d9da1;
+    box-shadow: 0 0 0 4px rgba(77,157,161,.18);
+}
+
+button {
+    padding: 14px 22px;
+    border: 2px solid #6d4715;
+    border-radius: 12px;
+    background: linear-gradient(#f4cf67, #c28a26);
+    color: #281a0c;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #7c5419;
+}
+button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+button:active { transform: translateY(2px); box-shadow: 0 2px 0 #7c5419; }
+
+#feedback {
+    min-height: 30px;
+    margin-top: 20px;
+    text-align: center;
+    font: bold 18px Arial, sans-serif;
+}
+
+#controls {
+    margin-top: 17px;
+    text-align: center;
+    color: #625438;
+    font: 14px Arial, sans-serif;
+}
+
+#keyDisplay {
+    display: none;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 610px;
+    margin: 12px auto 0;
+}
+
+.key {
+    width: 29px;
+    height: 29px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #a68752;
+    border-radius: 5px;
+    background: #eee0ae;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* =========================================================
+   MOUSE PUZZLE
+   ========================================================= */
+#mousePuzzle {
+    display: none;
+    position: relative;
+    width: 100%;
+    height: 190px;
+    margin-top: 20px;
+    border: 3px dashed #92702d;
+    border-radius: 15px;
+    background: rgba(255,255,255,.2);
+    overflow: hidden;
+}
+
+#mouseInstruction {
+    text-align: center;
+    margin: 10px 0 0;
+    font: bold 14px Arial, sans-serif;
+}
+
+#target {
+    position: absolute;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: 4px solid #ffe99a;
+    background: radial-gradient(circle, #72dfe1 0 25%, #3a7db3 26% 60%, #3c236e 61%);
+    box-shadow: 0 0 25px rgba(77,226,230,.8);
+    cursor: pointer;
+}
+
+/* =========================================================
+   GENIE SPEECH
+   ========================================================= */
+#genieSpeech {
+    position: absolute;
+    z-index: 25;
+    right: 5%;
+    top: 28%;
+    width: 245px;
+    padding: 16px 18px;
+    background: #fff8df;
+    color: #22172a;
+    border: 3px solid #c69a3a;
+    border-radius: 18px;
+    box-shadow: 0 8px 25px rgba(0,0,0,.4);
+    font: 15px Arial, sans-serif;
+}
+
+#genieSpeech::after {
+    content: "";
+    position: absolute;
+    left: 20px;
+    bottom: -17px;
+    border-width: 16px 16px 0 0;
+    border-style: solid;
+    border-color: #c69a3a transparent transparent transparent;
+}
+
+/* =========================================================
+   RAGE METER
+   ========================================================= */
+#rageMeter {
+    position: absolute;
+    right: 25px;
+    bottom: 22px;
+    z-index: 35;
+    width: 230px;
+    height: 19px;
+    padding: 2px;
+    border: 2px solid #d7a93b;
+    border-radius: 12px;
+    background: rgba(0,0,0,.5);
+}
+
+#rageFill {
+    width: 0%;
+    height: 100%;
+    border-radius: 8px;
+    background: linear-gradient(90deg, #5ed5c7, #e4bf45, #e04c55);
+    transition: width .35s;
+}
+
+/* =========================================================
+   VISIBILITY EFFECT
+   ========================================================= */
+#visibilityOverlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    pointer-events: none;
+    background: radial-gradient(
+        circle at center,
+        transparent 0 12%,
+        rgba(0,0,0,.36) 28%,
+        rgba(0,0,0,.88) 70%
+    );
+}
+
+/* =========================================================
+   FINAL CRASH
+   ========================================================= */
+#crashScreen {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    padding: 10vh 11vw;
+    background: #020204;
+    color: #d9d9d9;
+    font: 16px "Courier New", monospace;
+}
+
+#crashScreen h1 {
+    color: #ff4e5e;
+    font-size: clamp(38px, 6vw, 72px);
+    margin: 0 0 20px;
+}
+
+#crashText {
+    white-space: pre-line;
+    line-height: 1.8;
+}
+
+#restart {
+    margin-top: 30px;
+    background: #ddd;
+    color: #111;
+    border-color: #888;
+}
+
+/* Genie rage animations */
+.raging { animation: rageShake .15s infinite; }
+.glitch { animation: glitch .18s infinite; }
+
+@keyframes rageShake {
+    0% { transform: rotate(-2deg) scale(var(--genie-scale)); }
+    50% { transform: rotate(2deg) scale(var(--genie-scale)); }
+    100% { transform: rotate(-2deg) scale(var(--genie-scale)); }
+}
+
+@keyframes glitch {
+    0%, 100% { filter: drop-shadow(0 12px 12px rgba(0,0,0,.55)); }
+    30% { filter: hue-rotate(80deg) contrast(1.8); }
+    60% { filter: blur(2px) contrast(2); }
+}
+
+.shakePanel {
+    animation: panelShake .16s infinite;
+}
+
+@keyframes panelShake {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    25% { transform: translate(-49%, -51%) rotate(-.4deg); }
+    50% { transform: translate(-51%, -49%) rotate(.4deg); }
+    75% { transform: translate(-50%, -51%) rotate(-.3deg); }
+    100% { transform: translate(-50%, -50%) rotate(0deg); }
+}
+
+@media (max-width: 950px) {
+    #heroSprite, #genieSprite { opacity: .45; }
+    #gameArea { width: 88vw; padding: 28px; }
+    #genieSpeech { right: 2%; width: 190px; }
+}
+
+@media (max-width: 650px) {
+    #hud { grid-template-columns: 1fr auto; }
+    #genieMood { display: none; }
+    #genieSpeech { display: none; }
+    #gameArea { width: 94vw; }
+}
+</style>
+</head>
+
+<body>
+<div id="game">
+
+    <div id="moon"></div>
+    <div id="palace"></div>
+
+    <!-- =====================================================
+         SPRITE SLOTS
+         Replace the src paths or change the CSS variables above.
+         ===================================================== -->
+    <div id="heroSprite" class="sprite">
+        <img id="heroImage" src="assets/hero_normal.jpg" alt="Hero sprite">
+    </div>
+
+    <div id="genieSprite" class="sprite">
+        <img id="genieImage" src="assets/genie_normal.jpg" alt="Genie sprite">
+    </div>
+
+    <header id="hud">
+        <div class="brand">✦ THE GENIE'S GAME ✦</div>
+        <div id="levelText">Level 1 / 7</div>
+        <div id="genieMood">Genie: 😐</div>
+    </header>
+
+    <main id="gameArea">
+        <h1 id="levelTitle">The First Test</h1>
+
+        <div id="riddle"></div>
+
+        <div id="mousePuzzle">
+            <div id="target"></div>
+        </div>
+
+        <div id="mouseInstruction"></div>
+
+        <div id="inputArea">
+            <input id="answerInput"
+                   type="text"
+                   autocomplete="off"
+                   placeholder="Type your answer...">
+            <button id="submitButton">Submit</button>
+        </div>
+
+        <div id="controls">
+            <div id="controlText">Type your answer and press Enter.</div>
+            <div id="keyDisplay"></div>
+        </div>
+
+        <div id="feedback"></div>
+    </main>
+
+    <div id="genieSpeech">
+        <b>Genie:</b>
+        <span id="speech">Let's see what you've got...</span>
+    </div>
+
+    <div id="rageMeter">
+        <div id="rageFill"></div>
+    </div>
+
+    <div id="visibilityOverlay"></div>
+
+    <section id="crashScreen">
+        <h1>GAME CRASHED</h1>
+        <div id="crashText"></div>
+        <button id="restart">Restart Game</button>
+    </section>
+</div>
+
+<script>
+/* =========================================================
+   LEVELS
+   ========================================================= */
+const levels = [
+    {
+        title: "The First Test",
+        riddle: "I have keys but no locks. I have space but no room. You can enter, but you cannot go inside. What am I?",
+        answers: ["keyboard"],
+        type: "riddle",
+        hero: "hero_normal.jpg",
+        genie: "genie_normal.jpg",
+        speech: "A simple riddle. Surely you won't embarrass me already."
+    },
+    {
+        title: "The Second Test",
+        riddle: "What has to be broken before you can use it?",
+        answers: ["egg"],
+        type: "riddle",
+        hero: "hero_thinking.jpg",
+        genie: "genie_thinking.jpg",
+        speech: "Still easy. I haven't even started cheating yet."
+    },
+    {
+        title: "The Rules Change",
+        riddle: "Catch the magical orb with your mouse. The Genie has inverted the mouse controls.",
+        answers: [],
+        type: "mouse",
+        hero: "hero_panic.jpg",
+        genie: "genie_normal.jpg",
+        speech: "Wait... you're actually winning?"
+    },
+    {
+        title: "The Inverted World",
+        riddle: "The more you take, the more you leave behind. What am I?",
+        answers: ["footsteps", "steps"],
+        type: "riddle",
+        hero: "hero_horror.jpg",
+        genie: "genie_rage.jpg",
+        speech: "Fine. Let's see how well you handle THIS."
+    },
+    {
+        title: "The Alphabet Trap",
+        riddle: "I am always in front of you but can never be seen. You can never catch me, no matter how fast you run. What am I?",
+        answers: ["future"],
+        type: "riddle",
+        hero: "hero_trembling.jpg",
+        genie: "genie_rage.jpg",
+        speech: "Your keyboard isn't quite behaving normally anymore..."
+    },
+    {
+        title: "The Dark Room",
+        riddle: "A man shaves several times a day, yet still has a beard. Who is he?",
+        answers: ["barber"],
+        type: "riddle",
+        hero: "hero_trembling.jpg",
+        genie: "genie_smoke.jpg",
+        speech: "Let's remove a little of your visibility. Surely that's fair."
+    },
+    {
+        title: "THE FINAL TEST",
+        riddle: "A prisoner is told: If you tell a lie, you will be hanged. If you tell the truth, you will be shot. What single statement can the prisoner make to save himself?",
+        answers: [
+            "you will hang me",
+            "i will be hanged",
+            "you are going to hang me"
+        ],
+        type: "riddle",
+        hero: "hero_horror.jpg",
+        genie: "genie_smoke.jpg",
+        speech: "NO. NO. NO. YOU WERE NOT SUPPOSED TO GET THIS FAR."
+    }
+];
+
+/* =========================================================
+   GAME STATE
+   ========================================================= */
+let currentLevel = 0;
+let rage = 0;
+let mouseInverted = false;
+let alphabeticalKeyboard = false;
+let reducedVisibility = false;
+let gameFinished = false;
+let finalChaosTimer = null;
+
+/* =========================================================
+   ELEMENTS
+   ========================================================= */
+const game = document.getElementById("game");
+const gameArea = document.getElementById("gameArea");
+const levelTitle = document.getElementById("levelTitle");
+const riddle = document.getElementById("riddle");
+const answerInput = document.getElementById("answerInput");
+const submitButton = document.getElementById("submitButton");
+const feedback = document.getElementById("feedback");
+const speech = document.getElementById("speech");
+const levelText = document.getElementById("levelText");
+const genieMood = document.getElementById("genieMood");
+const rageFill = document.getElementById("rageFill");
+const visibilityOverlay = document.getElementById("visibilityOverlay");
+const mousePuzzle = document.getElementById("mousePuzzle");
+const mouseInstruction = document.getElementById("mouseInstruction");
+const target = document.getElementById("target");
+const controlText = document.getElementById("controlText");
+const keyDisplay = document.getElementById("keyDisplay");
+const heroImage = document.getElementById("heroImage");
+const genieImage = document.getElementById("genieImage");
+const heroSprite = document.getElementById("heroSprite");
+const genieSprite = document.getElementById("genieSprite");
+const crashScreen = document.getElementById("crashScreen");
+const crashText = document.getElementById("crashText");
+const restart = document.getElementById("restart");
+
+/* =========================================================
+   LOAD LEVEL
+   ========================================================= */
+function loadLevel() {
+    if (currentLevel >= levels.length) {
+        simulateCrash();
+        return;
+    }
+
+    const level = levels[currentLevel];
+
+    levelTitle.textContent = level.title;
+    riddle.textContent = level.riddle;
+    levelText.textContent = `Level ${currentLevel + 1} / ${levels.length}`;
+    feedback.textContent = "";
+    speech.textContent = level.speech;
+    answerInput.value = "";
+
+    heroImage.src = `assets/${level.hero}`;
+    genieImage.src = `assets/${level.genie}`;
+
+    resetLevelEffects();
+
+    if (currentLevel >= 2) enableMouseInversion();
+    if (currentLevel >= 4) enableAlphabeticalKeyboard();
+    if (currentLevel >= 5) enableReducedVisibility();
+    if (currentLevel === 6) activateFinalChaos();
+
+    if (level.type === "mouse") {
+        mousePuzzle.style.display = "block";
+        mouseInstruction.textContent = "Click the orb to complete the puzzle.";
+        answerInput.style.display = "none";
+        submitButton.style.display = "none";
+        positionTarget();
+    } else {
+        mousePuzzle.style.display = "none";
+        mouseInstruction.textContent = "";
+        answerInput.style.display = "";
+        submitButton.style.display = "";
+        answerInput.focus();
+    }
+
+    updateControls();
+    updateGenieMood();
+}
+
+/* =========================================================
+   RESET EFFECTS BEFORE APPLYING CURRENT LEVEL
+   ========================================================= */
+function resetLevelEffects() {
+    mouseInverted = false;
+    alphabeticalKeyboard = false;
+    reducedVisibility = false;
+
+    visibilityOverlay.style.display = "none";
+    keyDisplay.style.display = "none";
+    gameArea.classList.remove("shakePanel");
+    genieSprite.classList.remove("raging", "glitch");
+
+    if (finalChaosTimer) {
+        clearInterval(finalChaosTimer);
+        finalChaosTimer = null;
+    }
+}
+
+/* =========================================================
+   RIDDLE CHECKING
+   ========================================================= */
+function checkAnswer() {
+    if (gameFinished) return;
+
+    const level = levels[currentLevel];
+    let answer = answerInput.value.trim().toLowerCase();
+    answer = answer.replace(/[.,!?'"-]/g, "");
+
+    const correct = level.answers.some(
+        accepted => answer === accepted.toLowerCase()
+    );
+
+    if (correct) {
+        feedback.textContent = "Correct! The Genie is getting nervous...";
+        feedback.style.color = "#246b46";
+        increaseRage();
+
+        setTimeout(() => {
+            currentLevel++;
+            loadLevel();
+        }, 900);
+    } else {
+        feedback.textContent = "Wrong. The Genie is laughing at you.";
+        feedback.style.color = "#9c2535";
+        rage = Math.min(100, rage + 5);
+        updateRage();
+    }
+}
+
+/* =========================================================
+   RAGE
+   ========================================================= */
+function increaseRage() {
+    rage += currentLevel < 2 ? 8 : 17;
+    rage = Math.min(100, rage);
+    updateRage();
+}
+
+function updateRage() {
+    rageFill.style.width = rage + "%";
+    updateGenieMood();
+}
+
+function updateGenieMood() {
+    if (rage < 20) genieMood.textContent = "Genie: 😐";
+    else if (rage < 40) genieMood.textContent = "Genie: 🙄";
+    else if (rage < 60) genieMood.textContent = "Genie: 😒";
+    else if (rage < 80) genieMood.textContent = "Genie: 😡";
+    else genieMood.textContent = "Genie: 🤬";
+}
+
+/* =========================================================
+   INVERTED MOUSE
+   This is deliberately contained inside the game.
+   It does NOT change the operating system mouse.
+   ========================================================= */
+function enableMouseInversion() {
+    mouseInverted = true;
+    controlText.textContent = "WARNING: The Genie inverted your mouse controls.";
+}
+
+game.addEventListener("mousemove", event => {
+    if (!mouseInverted) return;
+
+    /* Keep the effect visual/game-local. */
+    game.style.setProperty("--fake-mouse-x", (innerWidth - event.clientX) + "px");
+    game.style.setProperty("--fake-mouse-y", (innerHeight - event.clientY) + "px");
+});
+
+/* =========================================================
+   MOUSE PUZZLE
+   ========================================================= */
+function positionTarget() {
+    const area = mousePuzzle.getBoundingClientRect();
+    const maxX = Math.max(0, area.width - target.offsetWidth);
+    const maxY = Math.max(0, area.height - target.offsetHeight);
+
+    let x = Math.random() * maxX;
+    let y = Math.random() * maxY;
+
+    if (mouseInverted) {
+        x = maxX - x;
+        y = maxY - y;
+    }
+
+    target.style.left = x + "px";
+    target.style.top = y + "px";
+}
+
+target.addEventListener("click", () => {
+    feedback.textContent = "You caught it!";
+    feedback.style.color = "#246b46";
+    increaseRage();
+
+    setTimeout(() => {
+        currentLevel++;
+        loadLevel();
+    }, 800);
+});
+
+/* =========================================================
+   ALPHABETICAL KEYBOARD
+   Physical QWERTY keys are remapped:
+   Q->A, W->B, E->C ... M->Z.
+   This only affects typing inside the answer field.
+   ========================================================= */
+function enableAlphabeticalKeyboard() {
+    alphabeticalKeyboard = true;
+    answerInput.placeholder = "Keyboard scrambled. Type carefully.";
+    controlText.textContent = "Keyboard layout changed to alphabetical order.";
+    buildKeyboardDisplay();
+}
+
+function buildKeyboardDisplay() {
+    keyDisplay.innerHTML = "";
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    for (const letter of letters) {
+        const key = document.createElement("div");
+        key.className = "key";
+        key.textContent = letter;
+        keyDisplay.appendChild(key);
+    }
+}
+
+const normalKeyboard = "QWERTYUIOPASDFGHJKLZXCVBNM";
+const alphabetKeyboard = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+document.addEventListener("keydown", event => {
+    if (!alphabeticalKeyboard) return;
+    if (document.activeElement !== answerInput) return;
+
+    const key = event.key.toUpperCase();
+    const index = normalKeyboard.indexOf(key);
+
+    if (index !== -1) {
+        event.preventDefault();
+        answerInput.value += alphabetKeyboard[index].toLowerCase();
+    }
+});
+
+/* =========================================================
+   REDUCED VISIBILITY
+   ========================================================= */
+function enableReducedVisibility() {
+    reducedVisibility = true;
+    visibilityOverlay.style.display = "block";
+    speech.textContent = "Heh. Let's make things a little harder to see.";
+}
+
+/* =========================================================
+   FINAL CHAOS
+   ========================================================= */
+function activateFinalChaos() {
+    gameArea.classList.add("shakePanel");
+    genieSprite.classList.add("raging", "glitch");
+    speech.textContent = "STOP WINNING!!!";
+
+    finalChaosTimer = setInterval(() => {
+        if (gameFinished) return;
+
+        const x = (Math.random() - .5) * 18;
+        const y = (Math.random() - .5) * 12;
+
+        gameArea.style.marginLeft = x + "px";
+        gameArea.style.marginTop = y + "px";
+    }, 250);
+}
+
+/* =========================================================
+   SIMULATED CRASH
+   ========================================================= */
+function simulateCrash() {
+    gameFinished = true;
+
+    if (finalChaosTimer) clearInterval(finalChaosTimer);
+
+    gameArea.style.display = "none";
+    document.getElementById("hud").style.display = "none";
+    document.getElementById("genieSpeech").style.display = "none";
+    document.getElementById("rageMeter").style.display = "none";
+    heroSprite.style.display = "none";
+    genieSprite.style.display = "none";
+    visibilityOverlay.style.display = "none";
+
+    crashScreen.style.display = "block";
+
+    crashText.textContent =
+`GENIE_RUNTIME_ERROR
+
+The Genie has had enough.
+
+Reason:
+PLAYER WAS TOO GOOD
+
+Level: 7
+
+Genie emotional state:
+CRITICAL
+
+Attempting to restore rules...
+
+FAILED.
+
+Keyboard integrity: FAILED
+Mouse integrity: FAILED
+Riddle generator: OVERHEATED
+
+The Genie has ragequit.
+
+Error code: GENIE_0xRAGE`;
+}
+
+/* =========================================================
+   INPUT
+   ========================================================= */
+submitButton.addEventListener("click", checkAnswer);
+
+answerInput.addEventListener("keydown", event => {
+    if (event.key === "Enter") checkAnswer();
+});
+
+restart.addEventListener("click", () => location.reload());
+
+function updateControls() {
+    keyDisplay.style.display = currentLevel >= 4 ? "flex" : "none";
+}
+
+/* =========================================================
+   START
+   ========================================================= */
+loadLevel();
+</script>
+</body>
+</html>
